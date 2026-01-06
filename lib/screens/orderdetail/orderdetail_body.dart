@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:koperasitenantapp/bloc/auth_payment/auth_payment_bloc.dart';
 import 'package:koperasitenantapp/bloc/order_detail/order_detail_bloc.dart';
 import 'package:koperasitenantapp/init/util/util.dart';
+import 'package:koperasitenantapp/models/auth/auth_request.dart';
 import 'package:koperasitenantapp/screens/orderdetail/widget/orderdetail_item.dart';
+import 'package:koperasitenantapp/service/payment.dart';
 import 'package:koperasitenantapp/service/storage.dart';
 import 'package:koperasitenantapp/themes/colors.dart';
 import 'package:koperasitenantapp/themes/widgets/labelvalue.dart';
 import 'package:koperasitenantapp/themes/widgets/loading.dart';
 import 'package:koperasitenantapp/themes/widgets/refresh_message.dart';
+import 'package:koperasitenantapp/themes/widgets/buttons.dart';
 
 class OrderDetailBody extends StatefulWidget {
   const OrderDetailBody({super.key, required this.orderCode});
@@ -19,6 +23,8 @@ class OrderDetailBody extends StatefulWidget {
 }
 
 class _OrderDetailBodyState extends State<OrderDetailBody> {
+  final AuthRequest _authRequest = AuthRequest(cardId: "", pin: "");
+
   @override
   void initState() {
     super.initState();
@@ -32,8 +38,36 @@ class _OrderDetailBodyState extends State<OrderDetailBody> {
 
   void _getOrder() async {
     final String? _token = await context.read<SecureStorage>().getToken();
-    
-    context.read<OrderDetailBloc>().add(OrderDetailRequested(_token!, widget.orderCode));
+
+    context.read<OrderDetailBloc>().add(
+      OrderDetailRequested(_token!, widget.orderCode),
+    );
+  }
+
+  void _openNFCPopup() async {
+    context.read<PaymentProcess>().nfcPopup(context, (cardId, pin) {
+      /**
+       * 1. Auth Card
+       * 2. Create Order
+       * 3. Payment
+       */
+      // Auth Card
+      _authRequest.cardId = cardId;
+      _authRequest.pin = pin;
+
+      if (!_authRequest.allowLogin()) {
+        displaySnackBar("PIN harus diisi!");
+        return;
+      }
+
+      context.read<AuthPaymentBloc>().add(AuthPaymentRequested(_authRequest));
+    });
+  }
+
+  void displaySnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -45,6 +79,8 @@ class _OrderDetailBodyState extends State<OrderDetailBody> {
         }
 
         if (state is OrderDetailLoadSuccess) {
+          bool needRetry = state.data.status == 0;
+
           return CustomScrollView(
             slivers: [
               // Worker Info
@@ -136,13 +172,13 @@ class _OrderDetailBodyState extends State<OrderDetailBody> {
                   ),
                 ),
               ),
-              // Balance Log
+              // List Pesanan
               SliverPadding(
                 padding: EdgeInsets.all(10.0),
                 sliver: SliverToBoxAdapter(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
                         "List Pesanan",
@@ -180,6 +216,15 @@ class _OrderDetailBodyState extends State<OrderDetailBody> {
                           ),
                         ),
                       ),
+                      SizedBox(height: 15.0),
+                      // Button to Retry Payment
+                      needRetry
+                          ? PrimaryButton(
+                            onPress: () => _openNFCPopup(),
+                            label: "Lanjutkan Pembayaran",
+                            icon: Icon(Icons.sync),
+                          )
+                          : SizedBox(height: 0),
                     ],
                   ),
                 ),

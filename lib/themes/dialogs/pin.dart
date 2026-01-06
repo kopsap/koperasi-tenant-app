@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:koperasitenantapp/bloc/auth_payment/auth_payment_bloc.dart';
 import 'package:koperasitenantapp/bloc/order_process/order_process_bloc.dart';
 import 'package:koperasitenantapp/init/util/util.dart';
 import 'package:koperasitenantapp/themes/colors.dart';
@@ -19,61 +20,69 @@ Widget pinDialog({required BuildContext context, required Function onSubmit}) {
     builder: (context, setState) {
       return dialogTemplate(
         height: 200.0,
-        component: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            /**
-             * Input PIN
-             */
-            TextFormField(
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              keyboardType: TextInputType.number,
-              controller: _pin,
-              decoration: InputDecoration(
-                prefixIcon: Icon(Icons.lock),
-                contentPadding: EdgeInsets.symmetric(
-                  vertical: 2.0,
-                  horizontal: 5.0,
+        component: BlocBuilder<OrderProcessBloc, OrderProcessState>(
+          builder: (_, state) {
+            if (state is OrderProcessLoading) {
+              return Loading(textMessage: "Pembayaran dalam proses!");
+            }
+
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                /**
+               * Input PIN
+               */
+                TextFormField(
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  keyboardType: TextInputType.number,
+                  controller: _pin,
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.lock),
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: 2.0,
+                      horizontal: 5.0,
+                    ),
+                    border: OutlineInputBorder(),
+                    labelText: 'Masukkan 6-digit pin disini',
+                    floatingLabelBehavior: FloatingLabelBehavior.never,
+                    labelStyle: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  obscureText: true,
+                  style: Theme.of(context).textTheme.labelLarge,
                 ),
-                border: OutlineInputBorder(),
-                labelText: 'Masukkan 6-digit pin disini',
-                floatingLabelBehavior: FloatingLabelBehavior.never,
-                labelStyle: Theme.of(context).textTheme.labelLarge,
-              ),
-              obscureText: true,
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-            SizedBox(height: 15.0),
-            BlocBuilder<OrderProcessBloc, OrderProcessState>(
-              builder: (_, state) {
-                if (state is OrderProcessLoading) {
-                  return Loading();
-                }
-
-                return PrimaryButton(
-                  onPress: () {
-                    String textValidation = "";
-
-                    if (_pin.value.text == "") {
-                      textValidation = "PIN harus diisi!";
-                    } else if (_pin.value.text.length < 6) {
-                      textValidation = "PIN harus 6 digit!";
+                SizedBox(height: 15.0),
+                BlocBuilder<AuthPaymentBloc, AuthPaymentState>(
+                  builder: (_, state) {
+                    if (state is AuthPaymentLoading) {
+                      return Loading();
                     }
 
-                    if (textValidation != "") {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(textValidation)));
-                    } else {
-                      onSubmit(_pin.value.text);
-                    }
+                    return PrimaryButton(
+                      onPress: () {
+                        String textValidation = "";
+
+                        if (_pin.value.text == "") {
+                          textValidation = "PIN harus diisi!";
+                        } else if (_pin.value.text.length < 6) {
+                          textValidation = "PIN harus 6 digit!";
+                        }
+
+                        if (textValidation != "") {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(textValidation)),
+                          );
+                        } else {
+                          onSubmit(_pin.value.text);
+                        }
+                      },
+                      label: "Enter",
+                    );
                   },
-                  label: "Enter",
-                );
-              },
-            ),
-          ],
+                ),
+              ],
+            );
+          },
         ),
       );
     },

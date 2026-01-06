@@ -12,6 +12,7 @@ import 'package:koperasitenantapp/models/auth/auth_request.dart';
 import 'package:koperasitenantapp/models/order/order_create_request.dart';
 import 'package:koperasitenantapp/models/order/order_item.dart';
 import 'package:koperasitenantapp/models/order/order_payment_request.dart';
+import 'package:koperasitenantapp/service/payment.dart';
 import 'package:koperasitenantapp/service/storage.dart';
 import 'package:koperasitenantapp/themes/colors.dart';
 import 'package:koperasitenantapp/themes/dialogs/nfc.dart';
@@ -56,52 +57,25 @@ class _OrderBodyState extends State<OrderBody> {
   }
 
   void _openNFCPopup() async {
-    // Open Dialog
-    final dialog = await showDialog(
-      context: context,
-      builder:
-          (BuildContext context) => nfcDialog(
-            context: context,
-            onDetected: (uid) {
-              Navigator.pop(context, true);
-              _pinPopup(uid);
-            },
-          ),
-    );
+    context.read<PaymentProcess>().nfcPopup(context, (cardId, pin) {
+      /**
+       * 1. Auth Card
+       * 2. Create Order
+       * 3. Payment
+       */
+      // Auth Card
+      _authRequest.cardId = cardId;
+      _authRequest.pin = pin;
 
-    if (dialog == null) _closeNfcReader();
-  }
+      if (!_authRequest.allowLogin()) {
+        displaySnackBar("PIN harus diisi!");
+        return;
+      }
 
-  void _pinPopup(String cardId) async {
-    // Open another dialog
-    final dialog = await showDialog(
-      context: context,
-      builder:
-          (BuildContext context) => pinDialog(
-            context: context,
-            onSubmit: (pin) {
-              /**
-               * 1. Auth Card
-               * 2. Create Order
-               * 3. Payment
-               */
-              // Auth Card
-              _authRequest.cardId = cardId;
-              _authRequest.pin = pin;
-
-              if (!_authRequest.allowLogin()) {
-                displaySnackBar("PIN harus diisi!");
-                return;
-              }
-
-              context.read<AuthPaymentBloc>().add(
-                AuthPaymentRequested(_authRequest),
-              );
-            },
-          ),
-    );
-
-    if (dialog == null) _closeNfcReader();
+      context.read<AuthPaymentBloc>().add(
+        AuthPaymentRequested(_authRequest),
+      );
+    });
   }
 
   void _resultPopup(bool isSuccess) async {
@@ -230,7 +204,7 @@ class _OrderBodyState extends State<OrderBody> {
               controller: _price,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                prefixIcon: Icon(Icons.attach_money),
+                prefixIcon: Icon(Icons.money),
                 contentPadding: EdgeInsets.symmetric(
                   vertical: 2.0,
                   horizontal: 5.0,

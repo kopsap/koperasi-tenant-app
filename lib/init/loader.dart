@@ -9,6 +9,7 @@ import 'package:koperasitenantapp/bloc/order_process/order_process_bloc.dart';
 import 'package:koperasitenantapp/init/dio_config.dart';
 import 'package:koperasitenantapp/service/api_service.dart';
 import 'package:koperasitenantapp/init/util/nfc.dart';
+import 'package:koperasitenantapp/service/payment.dart';
 import 'package:koperasitenantapp/service/storage.dart';
 
 final getIt = GetIt.instance;
@@ -31,8 +32,10 @@ void initializeDepedencies() {
 
   // Blocs
   getIt.registerLazySingleton(() => AuthBloc(apiService: getIt<ApiService>()));
-  getIt.registerLazySingleton(() => AuthPaymentBloc(apiService: getIt<ApiService>()));
-  
+  getIt.registerLazySingleton(
+    () => AuthPaymentBloc(apiService: getIt<ApiService>()),
+  );
+
   getIt.registerLazySingleton(() => OrderBloc(apiService: getIt<ApiService>()));
   getIt.registerLazySingleton(
     () => OrderDetailBloc(apiService: getIt<ApiService>()),
@@ -42,4 +45,5 @@ void initializeDepedencies() {
   );
 
   getIt.registerLazySingleton(() => NFCReader());
+  getIt.registerLazySingleton(() => PaymentProcess());
 }

@@ -10,6 +10,7 @@ import 'package:koperasitenantapp/bloc/order_process/order_process_bloc.dart';
 import 'package:koperasitenantapp/kopsap_app.dart';
 import 'package:koperasitenantapp/init/loader.dart';
 import 'package:koperasitenantapp/init/observer.dart';
+import 'package:koperasitenantapp/service/payment.dart';
 import 'package:koperasitenantapp/service/storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -32,10 +33,11 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         Provider(create: (_) => getIt<SecureStorage>()),
+        Provider(create: (_) => getIt<PaymentProcess>()),
 
         BlocProvider(create: (_) => getIt<AuthBloc>()),
         BlocProvider(create: (_) => getIt<AuthPaymentBloc>()),
-        
+
         BlocProvider(create: (_) => getIt<OrderBloc>()),
         BlocProvider(create: (_) => getIt<OrderDetailBloc>()),
         BlocProvider(create: (_) => getIt<OrderProcessBloc>()),
